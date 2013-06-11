@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+ <title>Title of the document</title>
+ </head>
+ 
+ <body>
+ 
+<script>
+// requestAnim shim layer by Paul Irish
+    window.requestAnimFrame = (function(){
+      return  window.requestAnimationFrame       ||
+              window.webkitRequestAnimationFrame ||
+              window.mozRequestAnimationFrame    ||
+              window.oRequestAnimationFrame      ||
+              window.msRequestAnimationFrame     ||
+              function(/* function */ callback, /* DOMElement */ element){
+                window.setTimeout(callback, 1000 / 60);
+              };
+    })();
+ 
+ 
+// example code from mr doob : http://mrdoob.com/lab/javascript/requestanimationframe/
+ 
+var canvas, context, toggle, time, elapsed;
+var lastFrame, nextFrame;
+var canavasObjects = [];
+var timeline;
+ 
+var fps = 24;
+ 
+init();
+animate();
+ 
+//helpers-----------------
+ 
+function Timeline() {
+	var self = this;
+	this.canvas;
+	var context;
+	this.elapsed;
+	this.lastframe;
+	this.nextframe;
+	this.state = 'play';
+	var cursor;
+	
+	this.drawGrid = function(){
+		//todo
+	}
+	this.onClick = function(e){
+		var pos = getCursorPosition(e);
+		pos[0] -= self.canvas.offsetLeft;
+		pos[1] -= self.canvas.offsetTop;
+		console.log(pos)
+		if (self.state == 'play'){
+			self.state = 'pause'
+		}else{
+			self.state = 'play'
+		}
+		
+		if( cursor.contains(pos[0],pos[1]) ){ cursor.clicked = true; console.log('cursor')}
+	}
+	
+	this.init = function(){
+		self.canvas = document.createElement( 'canvas' );
+		self.canvas.width = 512;
+		self.canvas.height = 512;
+		
+		self.canvas.addEventListener("click", self.onClick, false);
+ 
+		context = self.canvas.getContext( '2d' );
+ 
+		document.body.appendChild( self.canvas );
+		self.elapsed = 0;
+		
+		cursor = new TimelineCursor(0,10, self);
+	}
+	
+	this.update = function(delta){
+		
+		if (self.state == 'play'){
+			self.elapsed += delta;
+		
+			var framespan = 1000/fps;
+			var elaspsedFrame = self.elapsed/framespan;
+			
+			self.lastFrame = Math.floor(elaspsedFrame) ;
+			self.nextFrame = lastFrame+1 ;
+			
+			self.draw();
+			//helper
+			cursor.x = self.lastFrame*10;
+			cursor.update();
+		}
+	}
+	
+	this.draw = function(){
+		context.clearRect(0,0,self.canvas.width,self.canvas.height)
+		
+		//grid
+		
+		for (var x = 0.5; x < 500; x += 10) {
+			context.moveTo(x, 0);
+			context.lineTo(x, 375);
+		}
+		
+		for (var y = 0.5; y < 375; y += 10) {
+		  context.moveTo(0, y);
+		  context.lineTo(500, y);
+		}
+		
+		context.strokeStyle = "#eee";
+		context.stroke();
+		
+		//line
+		
+		context.beginPath();
+		context.moveTo(0, 10);
+		context.lineTo(self.canvas.width, 10);
+		
+		context.strokeStyle = "#000";
+		context.stroke();
+		
+		//frame text
+		
+		context.textBaseline = "top";
+		context.fillText("frame: "+self.lastFrame, 18, 15);
+	}
+	
+	this.init();
+}
+ 
+function TimelineCursor(x, y, timeline) {
+	var self = this;
+	this.x = x;
+	this.y = y;
+	this.clicked = false;
+	var context = timeline.canvas.getContext( '2d' );
+	
+	this.draw = function(){
+		context.fillStyle = 'rgb(200,200,20)';
+		context.beginPath();
+		context.arc( self.x, self.y, 5, 0, Math.PI * 2, true );
+		context.closePath();
+		context.fill();
+	}
+	this.contains = function(x, y){
+		if( x < self.x+5 && x > self.x-5 &&  y < self.y+5 && x > self.y-5 ){
+			return true
+		}else{
+			return false
+		}
+	}
+	this.update = function(){
+		if (self.clicked == true){ console.log('clicked'); self.clicked = false; timeline.elapsed = 0; }
+		this.draw();
+	}
+	this.draw();
+}
+function AnimatedSet(dataset) {
+	var self = this;
+	this.name = 'lol';
+	this.x;
+	this.y;
+	this.clicked = false;
+	this.timeline;
+	var context;
+	
+	this.addToTimeline= function(timeline){
+		self.timeline = timeline;
+		self.timeline.attach(self);
+		var context = this.timeline.canvas.getContext( '2d' );
+	}
+	
+	this.draw = function(){
+		context.fillStyle = 'rgb(200,200,20)';
+		context.beginPath();
+		context.arc( self.x, self.y, 5, 0, Math.PI * 2, true );
+		context.closePath();
+		context.fill();
+	}
+	this.contains = function(x, y){
+		if( x < self.x+5 && x > self.x-5 &&  y < self.y+5 && x > self.y-5 ){
+			return true
+		}else{
+			return false
+		}
+	}
+	this.update = function(){
+		if (self.clicked == true){ console.log('clicked'); self.clicked = false; timeline.elapsed = 0; }
+		//this.draw();
+		
+	}
+	//this.draw();
+}
+ 
+function getCursorPosition(e) {
+    var x;
+    var y;
+    if (e.pageX != undefined && e.pageY != undefined) {
+	x = e.pageX;
+	y = e.pageY;
+    }
+    else {
+	x = e.clientX + document.body.scrollLeft +
+            document.documentElement.scrollLeft;
+	y = e.clientY + document.body.scrollTop +
+            document.documentElement.scrollTop;
+    }
+ 
+    var position =[x, y];
+    return position
+}
+ 
+ 
+//render------------------------------------------
+ 
+function init() {
+	timeline = new Timeline();
+}
+ 
+function animate() {
+    requestAnimFrame( animate );
+    draw();
+ 
+}
+ 
+function draw() {
+ 
+    var now = new Date().getTime(),
+        dt = now - (time || now);
+ 
+    time = now;
+    timeline.update(dt);
+ 
+}
+</script>
+</body>
